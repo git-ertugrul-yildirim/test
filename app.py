@@ -1,7 +1,11 @@
-from flask import Flask, render_template_string, request, redirect
+from flask import Flask, render_template_string, request, redirect, g
 import sqlite3
+import os
 
 app = Flask("test")
+
+# Database path constant
+DB_PATH = "app.db"
 
 HTML_TEMPLATE = """
 
@@ -70,12 +74,11 @@ HTML_TEMPLATE = """
 
 @app.route("/")
 def list():
-    conn = sqlite3.connect("app.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
     columns = [description[0] for description in cursor.description]
-    conn.close()
     return render_template_string(HTML_TEMPLATE, columns=columns, rows=rows)
 
 
@@ -83,44 +86,78 @@ def list():
 def add():
     name = request.form.get("name")
     if name:
-        conn = sqlite3.connect("app.db")
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO users (name) VALUES (?)", (name,))
         conn.commit()
-        conn.close()
     return redirect("/")
 
-@app.route("/remove")
+@app.route('/remove/<id>')
 def remove(id):
-    conn = sqlite3.connect("app.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM users WHERE id = ?", (id,))
     conn.commit()
-    conn.close()
     return redirect("/")
 
 @app.route("/show")
+
+@app.route('/show/<id>')
 def show(id):
-    conn = sqlite3.connect("app.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
     user = cursor.fetchone()
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
     columns = [description[0] for description in cursor.description]
-    conn.close()
     return render_template_string(HTML_TEMPLATE, columns=columns, rows=rows, user=user)
 
 @app.route("/update", methods=["POST"])
 def update():
-    conn = sqlite3.connect("app.db")
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET name = ? WHERE id = ?", (request.form.get("name"), request.form.get("id")))
     conn.commit()
-    conn.close()
     return redirect("/")    
 
-app.add_url_rule('/show/<id>', 'show', show)
-app.add_url_rule('/remove/<id>', 'remove', remove)
 
-app.run(host="127.0.0.1", port=8080, debug=True)
+def get_db_connection():
+    """Return a sqlite3 connection stored on Flask's `g` for the request.
+
+    The connection uses sqlite3.Row as row_factory so rows behave like dicts.
+    """
+    if 'db' not in g:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        g.db = conn
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    """Create the users table if it does not exist."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+if __name__ == '__main__':
+    init_db()
+    port = int(os.environ.get('PORT', '8080'))
+    app.run(host="127.0.0.1", port=port, debug=True)
