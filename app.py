@@ -70,7 +70,7 @@ HTML_TEMPLATE = """
 
 @app.route("/")
 def list():
-    conn = sqlite3.connect("test.db")
+    conn = sqlite3.connect("app.db")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
@@ -83,7 +83,7 @@ def list():
 def add():
     name = request.form.get("name")
     if name:
-        conn = sqlite3.connect("test.db")
+        conn = sqlite3.connect("app.db")
         cursor = conn.cursor()
         cursor.execute("INSERT INTO users (name) VALUES (?)", (name,))
         conn.commit()
@@ -92,7 +92,7 @@ def add():
 
 @app.route("/remove")
 def remove(id):
-    conn = sqlite3.connect("test.db")
+    conn = sqlite3.connect("app.db")
     cursor = conn.cursor()
     cursor.execute("DELETE FROM users WHERE id = ?", (id,))
     conn.commit()
@@ -101,7 +101,7 @@ def remove(id):
 
 @app.route("/show")
 def show(id):
-    conn = sqlite3.connect("test.db")
+    conn = sqlite3.connect("app.db")
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
     user = cursor.fetchone()
@@ -113,7 +113,7 @@ def show(id):
 
 @app.route("/update", methods=["POST"])
 def update():
-    conn = sqlite3.connect("test.db")
+    conn = sqlite3.connect("app.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET name = ? WHERE id = ?", (request.form.get("name"), request.form.get("id")))
     conn.commit()
