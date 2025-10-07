@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, g
+from flask import Flask, render_template, request, redirect, g, jsonify
 import sqlite3
 import os
 from collections import namedtuple
@@ -61,6 +61,17 @@ def update():
     cursor.execute("UPDATE users SET name = ? WHERE id = ?", (request.form.get("name"), request.form.get("id")))
     conn.commit()
     return redirect("/")    
+
+
+@app.route('/users')
+def users_api():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users")
+    rows = cursor.fetchall()
+    # rows are namedtuples; convert to list of dicts
+    result = [{k: getattr(r, k) for k in r._fields} for r in rows]
+    return jsonify(result)
 
 
 # DB connection handling
