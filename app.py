@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, redirect, g
+from flask import Flask, render_template, request, redirect, g
 import sqlite3
 import os
 from collections import namedtuple
@@ -7,73 +7,8 @@ from collections import namedtuple
 # ------------------------------------------------------------
 
 DB_PATH = "app.db"
-HTML_TEMPLATE = """
+TEMPLATE_NAME = "index.html"
 
-<!doctype html>
-
-<html lang="tr">
-<head>
-    <meta charset="utf-8">
-    <link rel="icon" href="data:image/png;base64,iVBORw0KGgo=">
-    <title>Kullanıcı Listesi</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 2rem; }
-        table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background-color: #f5f5f5; }
-        form { margin-bottom: 1rem; }
-        input[type="text"] { padding: 6px; width: 200px; }
-        input[type="submit"] { padding: 6px 12px; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h2>Kullanıcılar</h2>
-
-
-{% if not user %}
-    <form action="/add" method="post">
-        <label for="name">Kullanıcı:</label>
-        <input type="text" name="name" id="name" required>
-        <input type="submit" value="Ekle">
-    </form>
-{% else %}    
-    <form action="/update" method="post">
-        <label for="name">Kullanıcı:</label>
-        <input type="hidden" name="id" id="id" value="{{ user.id }}">
-        <input type="text" name="name" id="name" value="{{ user.name }}" required>
-        <input type="submit" value="Düzenle">
-    </form>    
-{% endif %}
-
-<table>
-    <thead>
-        <tr>
-            {% for col in columns %}
-                <th>{{ col }}</th>
-            {% endfor %}
-            <th>İşlem</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in rows %}
-            <tr>
-                {% for value in row %}
-                    <td>{{ value }}</td>
-                {% endfor %}
-                <td>
-                    <a href="{{ url_for('show', id=row.id) }}" class="show">Düzenle</a>
-                    <a href="{{ url_for('remove', id=row.id) }}" class="remove">Sil</a>
-                </td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
-<script src="{{ url_for('static', filename='app.js') }}"></script>
-
-</body>
-</html>
-"""
 
 # Routes: list, add, remove, show, update 
 # ------------------------------------------------------------
@@ -87,7 +22,7 @@ def list():
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
     columns = [description[0] for description in cursor.description]
-    return render_template_string(HTML_TEMPLATE, columns=columns, rows=rows)
+    return render_template(TEMPLATE_NAME, columns=columns, rows=rows)
 
 
 @app.route("/add", methods=["POST"])
@@ -117,7 +52,7 @@ def show(id):
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
     columns = [description[0] for description in cursor.description]
-    return render_template_string(HTML_TEMPLATE, columns=columns, rows=rows, user=user)
+    return render_template(TEMPLATE_NAME, columns=columns, rows=rows, user=user)
 
 @app.route("/update", methods=["POST"])
 def update():
