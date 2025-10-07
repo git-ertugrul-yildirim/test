@@ -28,23 +28,23 @@ window.addEventListener("load", (event) => {
     // ----------------------------------------------    
     fetch: () => {
       $.ajax({
-        url: '/fetch',
+        url: '/users',
       }).done((list) => {
         users.list(list);
       })
     },
     get: (id) => {
       $.ajax({
-        url: '/get/'+id,
+        url: '/users/'+id,
       }).done((user) => {
         users.show(user);
       })
     },
     insert: (id) => {
       $.ajax({
-        url: '/insert',
-        type: 'INSERT',
-        headers: {'Content-Type': 'application/json'},
+        url: '/users',
+        type: 'POST',
+        contentType: 'application/json',
         dataType: 'json',
         data: JSON.stringify({name: users._insertName.val()})
       }).done(() => {
@@ -53,7 +53,7 @@ window.addEventListener("load", (event) => {
     },
     delete: (id) => {
       $.ajax({
-        url: '/delete/'+id,
+        url: '/users/'+id,
         type: 'DELETE'
       }).done(() => {
         users.fetch();    
@@ -62,9 +62,9 @@ window.addEventListener("load", (event) => {
     update: () => {
       users._user.name = users._updateName.val();
       $.ajax({
-        url: '/update/'+users._user.id,
-        type: 'UPDATE',
-        headers: {'Content-Type': 'application/json'},
+        url: '/users/'+users._user.id,
+        type: 'PUT',
+        contentType: 'application/json',
         dataType: 'json',
         data: JSON.stringify(users._user)
       }).done(() => {

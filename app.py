@@ -19,49 +19,66 @@ app = Flask(__name__, static_url_path='/static', static_folder='static')
 def root():
     return render_template(TEMPLATE_NAME)
 
-@app.route('/fetch')
-def users_api():
+@app.route('/users', methods=['GET'])
+def users_list():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
-    return jsonify(get_json_list(rows))
+    return jsonify([get_json_item(r) for r in rows])
 
-@app.route('/get/<id>')
-def get(id):
+
+@app.route('/users/<int:id>', methods=['GET'])
+def users_get(id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
     user = cursor.fetchone()
+    if user is None:
+        return jsonify({'error': 'Not found'}), 404
     return jsonify(get_json_item(user))
 
-@app.route("/insert", methods=["INSERT"])
-def insert():
-    user = request.json
-    if user['name']:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO users (name) VALUES (?)", (user['name'],))
-        conn.commit()
 
-    return jsonify(user)
+@app.route('/users', methods=['POST'])
+def users_create():
+    data = request.get_json(silent=True) or {}
+    name = data.get('name')
+    if not name:
+        return jsonify({'error': 'name is required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO users (name) VALUES (?)", (name,))
+    conn.commit()
+    last_id = cursor.lastrowid
+    cursor.execute("SELECT * FROM users WHERE id = ?", (last_id,))
+    row = cursor.fetchone()
+    return jsonify(get_json_item(row)), 201
 
-@app.route('/delete/<id>', methods=["DELETE"])
-def delete(id):
+
+@app.route('/users/<int:id>', methods=['PUT'])
+def users_update(id):
+    data = request.get_json(silent=True) or {}
+    name = data.get('name')
+    if not name:
+        return jsonify({'error': 'name is required'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET name = ? WHERE id = ?", (name, id))
+    conn.commit()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
+    row = cursor.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(get_json_item(row))
+
+
+@app.route('/users/<int:id>', methods=['DELETE'])
+def users_delete(id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM users WHERE id = ?", (id,))
     conn.commit()
-    return jsonify()
-
-@app.route("/update/<id>", methods=["UPDATE"])
-def update(id):
-    user = request.json
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET name = ? WHERE id = ?", (user["name"], id))
-    conn.commit()
-    return jsonify()    
+    return ('', 204)
 
 # DB connection handling
 # ------------------------------------------------------------
@@ -98,6 +115,8 @@ def get_db_connection():
     return g.db
 
 def get_json_item(item):
+    if item is None:
+        return None
     return {k: getattr(item, k) for k in item._fields}
 
 def get_json_list(list):
