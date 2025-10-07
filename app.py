@@ -2,11 +2,8 @@ from flask import Flask, render_template_string, request, redirect, g
 import sqlite3
 import os
 
-app = Flask("test")
 
-# Database path constant
 DB_PATH = "app.db"
-
 HTML_TEMPLATE = """
 
 <!doctype html>
@@ -72,6 +69,11 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# Routes: list, add, remove, show, update 
+# ------------------------------------------------------------
+
+app = Flask("test")
+
 @app.route("/")
 def list():
     conn = get_db_connection()
@@ -100,8 +102,6 @@ def remove(id):
     conn.commit()
     return redirect("/")
 
-@app.route("/show")
-
 @app.route('/show/<id>')
 def show(id):
     conn = get_db_connection()
@@ -122,27 +122,10 @@ def update():
     return redirect("/")    
 
 
-def get_db_connection():
-    """Return a sqlite3 connection stored on Flask's `g` for the request.
-
-    The connection uses sqlite3.Row as row_factory so rows behave like dicts.
-    """
-    if 'db' not in g:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        g.db = conn
-    return g.db
-
-
-@app.teardown_appcontext
-def close_db(exception):
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
-
+# DB connection handling
+# ------------------------------------------------------------
 
 def init_db():
-    """Create the users table if it does not exist."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
@@ -156,6 +139,21 @@ def init_db():
     conn.commit()
     conn.close()
 
+@app.teardown_appcontext
+def close_db(exception):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()    
+
+def get_db_connection():
+    if 'db' not in g:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        g.db = conn
+    return g.db
+
+# Main
+# ------------------------------------------------------------
 
 if __name__ == '__main__':
     init_db()
