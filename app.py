@@ -14,6 +14,7 @@ HTML_TEMPLATE = """
 <html lang="tr">
 <head>
     <meta charset="utf-8">
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgo=">
     <title>Kullanıcı Listesi</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 2rem; }
@@ -67,6 +68,8 @@ HTML_TEMPLATE = """
         {% endfor %}
     </tbody>
 </table>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
 
 </body>
 </html>
@@ -75,7 +78,7 @@ HTML_TEMPLATE = """
 # Routes: list, add, remove, show, update 
 # ------------------------------------------------------------
 
-app = Flask("test")
+app = Flask(__name__, static_url_path='/static', static_folder='static')
 
 @app.route("/")
 def list():
