@@ -1,6 +1,7 @@
 from flask import Flask, render_template_string, request, redirect, g
 import sqlite3
 import os
+from collections import namedtuple
 
 
 DB_PATH = "app.db"
@@ -35,8 +36,8 @@ HTML_TEMPLATE = """
 {% else %}    
     <form action="/update" method="post">
         <label for="name">Kullanıcı:</label>
-        <input type="hidden" name="id" id="id" value="{{ user[0] }}">
-        <input type="text" name="name" id="name" value="{{ user[1] }}" required>
+        <input type="hidden" name="id" id="id" value="{{ user.id }}">
+        <input type="text" name="name" id="name" value="{{ user.name }}" required>
         <input type="submit" value="Düzenle">
     </form>    
 {% endif %}
@@ -57,8 +58,8 @@ HTML_TEMPLATE = """
                     <td>{{ value }}</td>
                 {% endfor %}
                 <td>
-                    <a href="{{ url_for('show', id=row[0]) }}" class="show">Düzenle</a>
-                    <a href="{{ url_for('remove', id=row[0]) }}" class="remove">Sil</a>
+                    <a href="{{ url_for('show', id=row.id) }}" class="show">Düzenle</a>
+                    <a href="{{ url_for('remove', id=row.id) }}" class="remove">Sil</a>
                 </td>
             </tr>
         {% endfor %}
@@ -148,7 +149,14 @@ def close_db(exception):
 def get_db_connection():
     if 'db' not in g:
         conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        # Row factory that returns namedtuple instances so you can access
+        # columns as attributes: row.id, row.name
+        def namedtuple_factory(cursor, row):
+            fields = [col[0] for col in cursor.description]
+            Row = namedtuple('Row', fields)
+            return Row(*row)
+
+        conn.row_factory = namedtuple_factory
         g.db = conn
     return g.db
 
