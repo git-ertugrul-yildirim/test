@@ -3,6 +3,8 @@ import sqlite3
 import os
 from collections import namedtuple
 
+# Constants
+# ------------------------------------------------------------
 
 DB_PATH = "app.db"
 HTML_TEMPLATE = """
@@ -149,13 +151,10 @@ def close_db(exception):
 def get_db_connection():
     if 'db' not in g:
         conn = sqlite3.connect(DB_PATH)
-        # Row factory that returns namedtuple instances so you can access
-        # columns as attributes: row.id, row.name
         def namedtuple_factory(cursor, row):
             fields = [col[0] for col in cursor.description]
             Row = namedtuple('Row', fields)
             return Row(*row)
-
         conn.row_factory = namedtuple_factory
         g.db = conn
     return g.db
