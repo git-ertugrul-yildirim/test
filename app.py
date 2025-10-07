@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, g, jsonify
+from flask import Flask, render_template, request, g, jsonify
 import sqlite3
 import os
 from collections import namedtuple
@@ -10,69 +10,58 @@ DB_PATH = "app.db"
 TEMPLATE_NAME = "index.html"
 
 
-# Routes: list, add, remove, show, update 
+# Routes: fetch, get, insert, delete, update
 # ------------------------------------------------------------
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 
 @app.route("/")
-def list():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users")
-    rows = cursor.fetchall()
-    columns = [description[0] for description in cursor.description]
-    return render_template(TEMPLATE_NAME, columns=columns, rows=rows)
+def root():
+    return render_template(TEMPLATE_NAME)
 
-
-@app.route("/add", methods=["POST"])
-def add():
-    name = request.form.get("name")
-    if name:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO users (name) VALUES (?)", (name,))
-        conn.commit()
-    return redirect("/")
-
-@app.route('/remove/<id>')
-def remove(id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM users WHERE id = ?", (id,))
-    conn.commit()
-    return redirect("/")
-
-@app.route('/show/<id>')
-def show(id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
-    user = cursor.fetchone()
-    cursor.execute("SELECT * FROM users")
-    rows = cursor.fetchall()
-    columns = [description[0] for description in cursor.description]
-    return render_template(TEMPLATE_NAME, columns=columns, rows=rows, user=user)
-
-@app.route("/update", methods=["POST"])
-def update():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET name = ? WHERE id = ?", (request.form.get("name"), request.form.get("id")))
-    conn.commit()
-    return redirect("/")    
-
-
-@app.route('/users')
+@app.route('/fetch')
 def users_api():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
-    # rows are namedtuples; convert to list of dicts
-    result = [{k: getattr(r, k) for k in r._fields} for r in rows]
-    return jsonify(result)
+    return jsonify(get_json_list(rows))
 
+@app.route('/get/<id>')
+def get(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
+    user = cursor.fetchone()
+    return jsonify(get_json_item(user))
+
+@app.route("/insert", methods=["INSERT"])
+def insert():
+    user = request.json
+    if user['name']:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO users (name) VALUES (?)", (user['name'],))
+        conn.commit()
+
+    return jsonify(user)
+
+@app.route('/delete/<id>', methods=["DELETE"])
+def delete(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ?", (id,))
+    conn.commit()
+    return jsonify()
+
+@app.route("/update/<id>", methods=["UPDATE"])
+def update(id):
+    user = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET name = ? WHERE id = ?", (user["name"], id))
+    conn.commit()
+    return jsonify()    
 
 # DB connection handling
 # ------------------------------------------------------------
@@ -107,6 +96,12 @@ def get_db_connection():
         conn.row_factory = namedtuple_factory
         g.db = conn
     return g.db
+
+def get_json_item(item):
+    return {k: getattr(item, k) for k in item._fields}
+
+def get_json_list(list):
+    return [get_json_item(r) for r in list]
 
 # Main
 # ------------------------------------------------------------
