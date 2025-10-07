@@ -1,8 +1,6 @@
 from flask import Flask, render_template_string, request, redirect
 import sqlite3
 
-conn = sqlite3.connect("app.db")
-cursor = conn.cursor()
 app = Flask("test")
 
 HTML_TEMPLATE = """
@@ -72,6 +70,8 @@ HTML_TEMPLATE = """
 
 @app.route("/")
 def list():
+    conn = sqlite3.connect("app.db")
+    cursor = conn.cursor()
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
     columns = [description[0] for description in cursor.description]
@@ -83,6 +83,8 @@ def list():
 def add():
     name = request.form.get("name")
     if name:
+        conn = sqlite3.connect("app.db")
+        cursor = conn.cursor()
         cursor.execute("INSERT INTO users (name) VALUES (?)", (name,))
         conn.commit()
         conn.close()
@@ -90,6 +92,8 @@ def add():
 
 @app.route("/remove")
 def remove(id):
+    conn = sqlite3.connect("app.db")
+    cursor = conn.cursor()
     cursor.execute("DELETE FROM users WHERE id = ?", (id,))
     conn.commit()
     conn.close()
@@ -97,6 +101,8 @@ def remove(id):
 
 @app.route("/show")
 def show(id):
+    conn = sqlite3.connect("app.db")
+    cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
     user = cursor.fetchone()
     cursor.execute("SELECT * FROM users")
@@ -107,6 +113,8 @@ def show(id):
 
 @app.route("/update", methods=["POST"])
 def update():
+    conn = sqlite3.connect("app.db")
+    cursor = conn.cursor()
     cursor.execute("UPDATE users SET name = ? WHERE id = ?", (request.form.get("name"), request.form.get("id")))
     conn.commit()
     conn.close()
